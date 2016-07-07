@@ -35,14 +35,14 @@ class SkipList[HF <: CommutativeHash[_], ST <: StorageType](implicit storage: KV
 
   def elementProof(e: SLElement): SLProof = {
     val leftNode = findLeft(topNode, e)
-    val leftProof = SLExistenceProof(leftNode.el, SLPath(hashTrack(leftNode.el).reverse))
+    val leftProof = SLExistenceProof(leftNode.el, SLPath(hashTrack(leftNode.el)))
     if (leftNode.el.key sameElements e.key) {
       require(leftNode.el == e, "Can't generate proof for element with existing key but different value")
       leftProof
     } else {
       val rightNode = leftNode.right.get
       val rightProof =
-        if (rightNode.el < MaxSLElement) Some(SLExistenceProof(rightNode.el, SLPath(hashTrack(rightNode.el).reverse)))
+        if (rightNode.el < MaxSLElement) Some(SLExistenceProof(rightNode.el, SLPath(hashTrack(rightNode.el))))
         else None
 
       SLNonExistenceProof(e, leftProof, rightProof)
@@ -157,27 +157,27 @@ class SkipList[HF <: CommutativeHash[_], ST <: StorageType](implicit storage: KV
     }
   }
 
-  private def hashTrack(trackElement: SLElement, n: SLNode = topNode): Seq[CryptographicHash#Digest] = {
-    def hashTrackLoop(n: SLNode = topNode): Seq[CryptographicHash#Digest] = {
+  private def hashTrack(trackElement: SLElement, n: SLNode = topNode): Seq[(CryptographicHash#Digest, Int)] = {
+    def hashTrackLoop(n: SLNode = topNode): Seq[(CryptographicHash#Digest, Int)] = {
       n.right match {
         case Some(rn) =>
           n.down match {
             case Some(dn) =>
               if (rn.isTower) hashTrackLoop(dn)
-              else if (rn.el > trackElement) rn.hash +: hashTrackLoop(dn)
-              else dn.hash +: hashTrackLoop(rn)
+              else if (rn.el > trackElement) (rn.hash, n.level) +: hashTrackLoop(dn)
+              else (dn.hash, n.level) +: hashTrackLoop(rn)
             case None =>
               if (rn.el > trackElement) {
-                if (rn.isTower) Seq(hf.hash(rn.el.bytes))
-                else Seq(rn.hash)
+                if (rn.isTower) Seq((hf.hash(rn.el.bytes), n.level))
+                else Seq((rn.hash, n.level))
               } else {
-                hf.hash(n.el.bytes) +: hashTrackLoop(rn)
+                (hf.hash(n.el.bytes), n.level) +: hashTrackLoop(rn)
               }
           }
-        case None => Seq(SLNode.emptyHash)
+        case None => Seq((SLNode.emptyHash, 0))
       }
     }
-    hashTrackLoop()
+    hashTrackLoop().reverse
   }
 
 

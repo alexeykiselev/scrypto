@@ -152,7 +152,8 @@ object SLProof {
     val merklePath = (0 until merklePathLength).map { i =>
       bytes.slice(merklePathStart + i * merklePathSize, merklePathStart + (i + 1) * merklePathSize)
     }
-    SLExistenceProof(e, SLPath(merklePath))
+    //TODO parse levels
+    SLExistenceProof(e, SLPath(merklePath.map(h => (h, -1))))
   }
 }
 
@@ -170,7 +171,8 @@ object SLExistenceProof {
               case m =>
                 throw new RuntimeException("MerklePath MUST be array of strings" + m + " given")
             }
-          }.map(_.get)
+          }.map(h => (h.get, -1))
+          //TODO parse levels
           case m =>
             throw new RuntimeException("MerklePath MUST be a list " + m + " given")
         })

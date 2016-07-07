@@ -6,16 +6,9 @@ import scorex.crypto.encode._
 import scorex.crypto.hash.CryptographicHash
 
 
-case class SLPath(hashes: Seq[CryptographicHash#Digest], directions: Seq[Direction] = Seq()) extends DataProof {
+case class SLPath(levHashes: Seq[(CryptographicHash#Digest, Int)]) extends DataProof {
 
-  //directions should be empty for usual proof and contains hash directions for extended proof
-  require(directions.isEmpty || directions.length == hashes.length)
+  lazy val hashes: Seq[CryptographicHash#Digest] = levHashes.map(_._1)
 
   override def toString: String = s"(hashes: ${hashes.map(Base58.encode)})"
 }
-
-sealed trait Direction
-
-case object Right extends Direction
-
-case object Down extends Direction
