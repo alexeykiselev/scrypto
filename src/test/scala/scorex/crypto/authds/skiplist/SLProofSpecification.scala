@@ -3,6 +3,7 @@ package scorex.crypto.authds.skiplist
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import org.scalatest.{Matchers, PropSpec}
 import scorex.crypto.authds.storage.MvStoreBlobBlobStorage
+import scorex.crypto.encode.Base58
 import scorex.crypto.hash.{Blake2b256, CommutativeHash}
 
 class SLProofSpecification extends PropSpec with GeneratorDrivenPropertyChecks with Matchers with SLGenerators {
@@ -13,6 +14,22 @@ class SLProofSpecification extends PropSpec with GeneratorDrivenPropertyChecks w
   val elements = genEl(100)
   val nonIncludedElements = genEl(101).diff(elements)
   sl.update(SkipListUpdate(toDelete = Seq(), toInsert = elements))
+
+  property("SLExtended proof check") {
+    forAll(slelementGenerator) { newSE: SLElement =>
+      whenever(!sl.contains(newSE)) {
+        val proof = sl.elementProof(newSE).asInstanceOf[SLNonExistenceProof]
+        proof.isEmpty shouldBe true
+
+        val newRootHash = ExtendedSLProof.recalculate(sl.rootHash, proof, newSE)
+        sl.insert(newSE)
+
+        Base58.encode(sl.rootHash) shouldBe Base58.encode(newRootHash)
+        sl.rootHash shouldEqual newRootHash
+      }
+    }
+  }
+
 
   property("SLExistenceProof serialization") {
     elements.foreach { e =>

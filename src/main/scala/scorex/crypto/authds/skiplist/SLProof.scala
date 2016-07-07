@@ -6,6 +6,7 @@ import scorex.crypto.authds.AuthData
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.{CommutativeHash, CryptographicHash}
 
+import scala.collection.mutable
 import scala.util.Try
 
 sealed trait SLProof extends AuthData[SLPath] {
@@ -41,7 +42,15 @@ object ExtendedSLProof {
     proof match {
       case SLNonExistenceProof(e, left, right) =>
         val rightHash: Digest = left.proof.hashes.head
-        val toReplace: Map[Digest, Digest] = Map(rightHash -> hf(rightHash, hf(newEl.bytes)))
+        var toReplace: mutable.HashMap[Digest, Digest] = mutable.HashMap.empty
+
+
+
+
+        toReplace += (rightHash -> hf(rightHash, hf(newEl.bytes)))
+
+
+
         left.proof.hashes.foldLeft(hf.hash(e.bytes)) { (x, y) =>
           //x - calculated, y - from list
           hf.hash(x, toReplace.getOrElse(y, y))

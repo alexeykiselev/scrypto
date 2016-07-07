@@ -157,22 +157,27 @@ class SkipList[HF <: CommutativeHash[_], ST <: StorageType](implicit storage: KV
     }
   }
 
-  private def hashTrack(trackElement: SLElement, n: SLNode = topNode): Seq[CryptographicHash#Digest] = n.right match {
-    case Some(rn) =>
-      n.down match {
-        case Some(dn) =>
-          if (rn.isTower) hashTrack(trackElement, dn)
-          else if (rn.el > trackElement) rn.hash +: hashTrack(trackElement, dn)
-          else dn.hash +: hashTrack(trackElement, rn)
-        case None =>
-          if (rn.el > trackElement) {
-            if (rn.isTower) Seq(hf.hash(rn.el.bytes))
-            else Seq(rn.hash)
-          } else {
-            hf.hash(n.el.bytes) +: hashTrack(trackElement, rn)
+  private def hashTrack(trackElement: SLElement, n: SLNode = topNode): Seq[CryptographicHash#Digest] = {
+    def hashTrackLoop(n: SLNode = topNode): Seq[CryptographicHash#Digest] = {
+      n.right match {
+        case Some(rn) =>
+          n.down match {
+            case Some(dn) =>
+              if (rn.isTower) hashTrackLoop(dn)
+              else if (rn.el > trackElement) rn.hash +: hashTrackLoop(dn)
+              else dn.hash +: hashTrackLoop(rn)
+            case None =>
+              if (rn.el > trackElement) {
+                if (rn.isTower) Seq(hf.hash(rn.el.bytes))
+                else Seq(rn.hash)
+              } else {
+                hf.hash(n.el.bytes) +: hashTrackLoop(rn)
+              }
           }
+        case None => Seq(SLNode.emptyHash)
       }
-    case None => Seq(SLNode.emptyHash)
+    }
+    hashTrackLoop()
   }
 
 
