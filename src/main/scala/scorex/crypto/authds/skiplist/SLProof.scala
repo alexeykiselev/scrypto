@@ -42,18 +42,20 @@ object ExtendedSLProof {
     proof match {
       case SLNonExistenceProof(e, left, right) =>
         val rightHash: Digest = left.proof.hashes.head
-        var toReplace: mutable.HashMap[Digest, Digest] = mutable.HashMap.empty
+        var toReplace: mutable.HashMap[String, Digest] = mutable.HashMap.empty
 
 
 
 
-        toReplace += (rightHash -> hf(rightHash, hf(newEl.bytes)))
+        toReplace += (Base58.encode(rightHash) -> hf(rightHash, hf(newEl.bytes)))
 
 
 
         left.proof.hashes.foldLeft(hf.hash(e.bytes)) { (x, y) =>
           //x - calculated, y - from list
-          hf.hash(x, toReplace.getOrElse(y, y))
+          val replaced = toReplace.getOrElse(Base58.encode(y), y)
+          println(s"calc: ${Base58.encode(x)}, ${Base58.encode(replaced)}")
+          hf.hash(x, replaced)
         }
       case _ => ???
     }
@@ -115,6 +117,8 @@ case class SLExistenceProof(e: SLElement, proof: SLPath) extends SLProof {
    */
   def check[HF <: CommutativeHash[_]](rootHash: Digest)(implicit hashFunction: HF): Boolean = {
     proof.hashes.foldLeft(hashFunction.hash(e.bytes)) { (x, y) =>
+      println(s"check: ${Base58.encode(x)}, ${Base58.encode(y)}")
+
       hashFunction.hash(x, y)
     }.sameElements(rootHash)
   }
