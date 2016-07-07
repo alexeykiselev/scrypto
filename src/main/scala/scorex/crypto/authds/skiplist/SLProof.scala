@@ -29,12 +29,37 @@ sealed trait SLProof extends AuthData[SLPath] {
 }
 
 /**
+ * SLProof that is enough to recalculate root hash without whole skiplist
+ */
+sealed trait ExtendedSLProof extends SLProof
+
+object ExtendedSLProof {
+  type Digest = CryptographicHash#Digest
+
+  def recalculate[HF <: CommutativeHash[_]](old: Digest, proof: ExtendedSLProof, newEl: SLElement)
+                                           (implicit hf: HF): Digest = {
+    proof match {
+      case SLNonExistenceProof(e, left, right) =>
+        val rightHash: Digest = left.proof.hashes.head
+        val toReplace: Map[Digest, Digest] = Map(rightHash -> hf(rightHash, hf(newEl.bytes)))
+        left.proof.hashes.foldLeft(hf.hash(e.bytes)) { (x, y) =>
+          //x - calculated, y - from list
+          hf.hash(x, toReplace.getOrElse(y, y))
+        }
+      case _ => ???
+    }
+
+  }
+}
+
+/**
  *
  * @param e
  * @param left
  * @param right - None for MaxSlElement, Some for others
  */
-case class SLNonExistenceProof(e: SLElement, left: SLExistenceProof, right: Option[SLExistenceProof]) extends SLProof {
+case class SLNonExistenceProof(e: SLElement, left: SLExistenceProof, right: Option[SLExistenceProof]) extends SLProof
+with ExtendedSLProof {
   lazy val bytes: Array[Byte] = {
     val eSize = Ints.toByteArray(e.bytes.length)
     val leftSize = Ints.toByteArray(left.bytes.length)

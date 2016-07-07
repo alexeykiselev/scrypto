@@ -18,7 +18,7 @@ with TestingCommons {
   val fileName = dirName + "SkipListSpecification.storage"
   new File(fileName).deleteOnExit()
   implicit val storage = new MvStoreBlobBlobStorage(Some(fileName))
-  implicit val hf: CommutativeHash[Blake2b256.type] = CommutativeHash(Blake2b256)
+  implicit val hf: CommutativeHash[Blake2b256.type] = new CommutativeHash(Blake2b256)
 
   val sl = new SkipList()(storage, hf)
 
