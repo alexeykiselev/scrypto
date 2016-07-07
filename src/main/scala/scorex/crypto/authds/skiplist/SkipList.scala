@@ -56,15 +56,15 @@ class SkipList[HF <: CommutativeHash[_], ST <: StorageType](implicit storage: KV
   }
 
   /**
-   * find first BOTTOM node which element is bigger then current element
-   */
+    * find first BOTTOM node which element is bigger then current element
+    */
   private def findLeft(node: SLNode, e: SLElement): SLNode = {
     findLeftTop(node, e).downUntil(_.down.isEmpty).get
   }
 
   /**
-   * find first TOP node which element is bigger then current element
-   */
+    * find first TOP node which element is bigger then current element
+    */
   @tailrec
   private def findLeftTop(node: SLNode, e: SLElement): SLNode = {
     val prevNodeOpt = node.rightUntil(n => n.right.exists(rn => rn.el > e))
@@ -218,8 +218,8 @@ class SkipList[HF <: CommutativeHash[_], ST <: StorageType](implicit storage: KV
   }
 
   /**
-   * All nodes in a tower
-   */
+    * All nodes in a tower
+    */
   @tailrec
   private def tower(n: SLNode = topNode, acc: Seq[SLNode] = Seq(topNode)): Seq[SLNode] = n.down match {
     case Some(downNode) => tower(downNode, downNode +: acc)
@@ -235,10 +235,11 @@ class SkipList[HF <: CommutativeHash[_], ST <: StorageType](implicit storage: KV
     val Size = 12
     val levs = tower() map { leftNode =>
       leftNode.level + ": " + elements.map { e =>
-        leftNode.rightUntil(n => n.el == e).map(el => Base58.encode(e.bytes).take(Size)).getOrElse("            ")
+        leftNode.rightUntil(n => n.el == e).map(n => Base58.encode(n.hash).substring(0, Size)).getOrElse("            ")
       }.mkString(", ")
     }
-    levs.reverse.mkString("\n")
+    val elementsS = "e: " + elements.map(e => Base58.encode(hf(e.bytes)).take(Size)).mkString(", ")
+    (elementsS +: levs).reverse.mkString("\n")
   }
 }
 
