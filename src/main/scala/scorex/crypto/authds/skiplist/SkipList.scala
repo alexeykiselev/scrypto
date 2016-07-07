@@ -47,7 +47,8 @@ class SkipList[HF <: CommutativeHash[_], ST <: StorageType](implicit storage: KV
 
       SLNonExistenceProof(e, leftProof, rightProof)
     }
-  }.ensuring(_.check(rootHash))
+  }
+//  }.ensuring(_.check(rootHash))
 
   // find bottom node with current element
   def find(e: SLElement): Option[SLNode] = {
@@ -248,7 +249,7 @@ object SkipList {
   type SLValue = Array[Byte]
 
   //select level where element e will be putted
-  def selectLevel(e: SLElement, maxLev: Int) = {
+  def selectLevel(e: SLElement, maxLev: Int): Int = {
     @tailrec
     def loop(lev: Int = 0): Int = {
       if (lev == maxLev) lev

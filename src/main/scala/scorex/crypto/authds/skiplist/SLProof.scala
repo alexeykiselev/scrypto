@@ -44,19 +44,15 @@ object ExtendedSLProof {
         require(e == newEl)
         val rightHash: Digest = left.proof.hashes.head
         var toReplace: mutable.HashMap[String, Digest] = mutable.HashMap.empty
+        val newProofs = hf(rightHash, hf(newEl.bytes)) +: left.proof.hashes.tail
 
 
 
-
-        toReplace += (Base58.encode(rightHash) -> hf(rightHash, hf(newEl.bytes)))
-
-
-
-        left.proof.hashes.foldLeft(hf.hash(left.e.bytes)) { (x, y) =>
+        newProofs.foldLeft(hf.hash(left.e.bytes)) { (x, y) =>
           //x - calculated, y - from list
           val replaced = toReplace.getOrElse(Base58.encode(y), y)
           println(s"calc: ${Base58.encode(x)}, ${Base58.encode(replaced)}")
-          hf.hash(x, replaced)
+          hf.hash(x, y)
         }
       case _ => ???
     }
