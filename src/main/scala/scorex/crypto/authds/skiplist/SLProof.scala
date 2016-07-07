@@ -37,10 +37,11 @@ sealed trait ExtendedSLProof extends SLProof
 object ExtendedSLProof {
   type Digest = CryptographicHash#Digest
 
-  def recalculate[HF <: CommutativeHash[_]](old: Digest, proof: ExtendedSLProof, newEl: SLElement)
+  def recalculate[HF <: CommutativeHash[_]](proof: ExtendedSLProof, newEl: SLElement)
                                            (implicit hf: HF): Digest = {
     proof match {
       case SLNonExistenceProof(e, left, right) =>
+        require(e == newEl)
         val rightHash: Digest = left.proof.hashes.head
         var toReplace: mutable.HashMap[String, Digest] = mutable.HashMap.empty
 
@@ -51,7 +52,7 @@ object ExtendedSLProof {
 
 
 
-        left.proof.hashes.foldLeft(hf.hash(e.bytes)) { (x, y) =>
+        left.proof.hashes.foldLeft(hf.hash(left.e.bytes)) { (x, y) =>
           //x - calculated, y - from list
           val replaced = toReplace.getOrElse(Base58.encode(y), y)
           println(s"calc: ${Base58.encode(x)}, ${Base58.encode(replaced)}")

@@ -19,7 +19,7 @@ class ExtendedSLProofSpecification extends PropSpec with GeneratorDrivenProperty
       val proof = sl2.elementProof(newSE).asInstanceOf[SLNonExistenceProof]
       proof.isEmpty shouldBe true
 
-      val newRootHash = ExtendedSLProof.recalculate(sl2.rootHash, proof, newSE)
+      val newRootHash = ExtendedSLProof.recalculate(proof, newSE)
       sl2.insert(newSE)
       val newProof = sl2.elementProof(newSE)
       newProof.check(sl2.rootHash)
