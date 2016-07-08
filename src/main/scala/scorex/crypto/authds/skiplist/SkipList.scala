@@ -65,7 +65,7 @@ class SkipList[HF <: CommutativeHash[_], ST <: StorageType](implicit storage: KV
   }
 
   /**
-   * find first TOP node which element is bigger then current element
+   * find first TOP node which element is lower or equal to current element
    */
   @tailrec
   private def findLeftTop(node: SLNode, e: SLElement): SLNode = {
@@ -82,11 +82,29 @@ class SkipList[HF <: CommutativeHash[_], ST <: StorageType](implicit storage: KV
     }
   }
 
+  def update(updates: SkipListUpdate): Unit = {
+    updates.toDelete foreach (n => delete(n, singleUpdate = false))
+    deleteEmptyTopLevels()
 
-  def insert(e: SLElement, singleInsert: Boolean = true): Boolean = if (contains(e)) {
+    updates.toInsert.sorted.reverse foreach { e => insert(e, singleInsert = false) }
+
+    topNode.recomputeHash
+    SLNode.set(TopNodeKey, topNode)
+    SLNode.cleanCache()
+    storage.commit()
+  }
+
+  //Delete element with such a key and insert newE with the same height
+  def update(newE: SLElement, singleInsert: Boolean = true): Unit = {
+    val n = findLeftTop(topNode, newE)
+    val lev = n.level
+    insert(newE, singleInsert, Some(lev))
+  }
+
+  def insert(e: SLElement, singleInsert: Boolean = true, levOpt: Option[Int] = None): Boolean = if (contains(e)) {
     false
   } else {
-    val eLevel = SkipList.selectLevel(e, topNode.level)
+    val eLevel = levOpt.getOrElse(SkipList.selectLevel(e, topNode.level))
     if (eLevel == topNode.level) newTopLevel()
     def insertOne(levNode: SLNode): SLNode = {
       val prev = levNode.rightUntil(_.right.get.el > e).get
@@ -101,18 +119,6 @@ class SkipList[HF <: CommutativeHash[_], ST <: StorageType](implicit storage: KV
     insertOne(leftAt(eLevel).get)
     recomputeHashesForAffected(e, singleInsert)
     true
-  }
-
-  def update(updates: SkipListUpdate): Unit = {
-    updates.toDelete foreach (n => delete(n, singleUpdate = false))
-    deleteEmptyTopLevels()
-
-    updates.toInsert.sorted.reverse foreach { e => insert(e, singleInsert = false) }
-
-    topNode.recomputeHash
-    SLNode.set(TopNodeKey, topNode)
-    SLNode.cleanCache()
-    storage.commit()
   }
 
   def delete(e: SLElement, singleUpdate: Boolean = true): Unit = {
@@ -249,7 +255,9 @@ object SkipList {
   type SLKey = Array[Byte]
   type SLValue = Array[Byte]
 
-  //select level where element e will be putted
+  /**
+   * Select a level where element e will be putted
+   */
   def selectLevel(e: SLElement, maxLev: Int): Int = {
     @tailrec
     def loop(lev: Int = 0): Int = {

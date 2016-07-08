@@ -107,10 +107,9 @@ object ExtendedSLProof {
     loop(proofs.head, proofs.tail)
   }
 
-
-  case class ProofToRecalculate(newEl: SLElement, eProof: SLExistenceProof)
-
 }
+
+case class ProofToRecalculate(newEl: SLElement, eProof: SLExistenceProof)
 
 /**
  *
@@ -164,12 +163,16 @@ case class SLExistenceProof(e: SLElement, proof: SLPath) extends SLProof {
   /**
    * Checks that this block is at position $index in tree with root hash = $rootHash
    */
-  def check[HF <: CommutativeHash[_]](rootHash: Digest)(implicit hashFunction: HF): Boolean = {
-    proof.hashes.foldLeft(hashFunction.hash(e.bytes)) { (x, y) =>
-      hashFunction.hash(x, y)
-    }.sameElements(rootHash)
+  def check[HF <: CommutativeHash[_]](currentRootHash: Digest)(implicit hashFunction: HF): Boolean = {
+    rootHash() sameElements currentRootHash
   }
 
+
+  def rootHash[HF <: CommutativeHash[_]]()(implicit hashFunction: HF): Digest = {
+    proof.hashes.foldLeft(hashFunction.hash(e.bytes)) { (x, y) =>
+      hashFunction.hash(x, y)
+    }
+  }
 }
 
 

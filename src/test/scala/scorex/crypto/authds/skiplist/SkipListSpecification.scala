@@ -77,6 +77,20 @@ with TestingCommons {
     }
   }
 
+  property("SkipList should update element") {
+    forAll(slelementGenerator) { newSE: SLElement =>
+      whenever(!sl.contains(newSE)) {
+        sl.insert(newSE) shouldBe true
+        sl.contains(newSE) shouldBe true
+        val rh = sl.rootHash
+
+        sl.update(newSE)
+        sl.rootHash shouldEqual rh
+      }
+    }
+  }
+
+
   property("SkipList should not contain deleted element") {
     forAll(slelementGenerator) { newSE: SLElement =>
       whenever(!sl.contains(newSE)) {
@@ -127,7 +141,9 @@ with TestingCommons {
         sl.contains(newSE) shouldBe true
         val proof = sl.elementProof(newSE)
         proof match {
-          case p: SLExistenceProof => p.check(sl.rootHash) shouldBe true
+          case p: SLExistenceProof =>
+            p.rootHash() shouldEqual sl.rootHash
+            p.check(sl.rootHash) shouldBe true
           case p: SLNonExistenceProof => assert(false)
         }
 
