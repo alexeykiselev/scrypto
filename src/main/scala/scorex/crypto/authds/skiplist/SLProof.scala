@@ -95,9 +95,7 @@ object ExtendedSLProof {
       }
       def recalcOne(p: SLExistenceProof, toReplace: Seq[(LevHash, LevHash)]): SLExistenceProof = {
         val newHashes: Seq[LevHash] = p.proof.levHashes.map { lh =>
-          val replace = toReplace.find(tr => lh.l == tr._1.l && (lh.h sameElements tr._1.h)).map(_._2).getOrElse(lh)
-          require(replace.l == lh.l)
-          replace
+          toReplace.find(tr => lh.h sameElements tr._1.h).map(_._2).getOrElse(lh)
         }
         val newPath = SLPath(newHashes)
         p.copy(proof = newPath)
@@ -109,20 +107,33 @@ object ExtendedSLProof {
       //for right proof from rightProof
       val elHashesR = (LevHash(hf(rightProof.eProof.r.e.bytes), 0), LevHash(hf(rightProof.newEl.bytes), 0))
       val toReplaceR = calcNewSelfElements(elHashesR._1.h, elHashesR._2.h, rightProof.eProof.r.proof.levHashes, Seq(elHashesR))
+      println("toReplaceR: " +toReplaceR)
 
       val headReplace = if (rightProof.eProof.l.proof.hashes.head sameElements hf(rightProof.eProof.r.e.bytes)) {
         hf(rightProof.newEl.bytes)
       } else {
-        hf(hf(rightProof.newEl .bytes), rightProof.eProof.r.proof.hashes.head)
+        hf(hf(rightProof.newEl.bytes), rightProof.eProof.r.proof.hashes.head)
       }
-      val newRRproof = rightProof.eProof.r.copy(e = rightProof.newEl)
 
-      val elHashesL = (LevHash(rightProof.eProof.l.proof.hashes.head, 0), LevHash(headReplace, 0))
-      val toReplaceL = calcNewSelfElements(hf(rightProof.eProof.l.e.bytes, rightProof.eProof.l.proof.hashes.head),
-        hf(rightProof.eProof.l.e.bytes, headReplace), rightProof.eProof.l.proof.levHashes.tail, Seq(elHashesL))
+      val newLRproof = recalcOne(rightProof.eProof.l, toReplaceR)
+      val elHashesL = (LevHash(newLRproof.proof.hashes.head, 0), LevHash(headReplace, 0))
+      //replcase self element
+      // !!!!!!!!! incorrect
+      val oldLeftHash = hf(rightProof.eProof.l.e.bytes, rightProof.eProof.l.proof.hashes.head)
+      val newLeftHash = hf(rightProof.eProof.l.e.bytes, headReplace)
 
-      val newLRproof = recalcOne(rightProof.eProof.l, elHashesL +: toReplaceR)
+      val toReplaceL = (LevHash(oldLeftHash, -1), LevHash(newLeftHash, -1)) +: calcNewSelfElements(hf(newLRproof.e.bytes, rightProof.eProof.l.proof.hashes.head),
+        hf(newLRproof.e.bytes, headReplace), newLRproof.proof.levHashes.tail, Seq(elHashesL))
+
+      println("toReplaceL: " + toReplaceL)
+      val newRRproof = recalcOne(rightProof.eProof.r.copy(e = rightProof.newEl), toReplaceL)
       val newRightProof = rightProof.copy(eProof = ExtendedSLExistenceProof(newLRproof, newRRproof))
+      println("old:" + rightProof.eProof.l.proof)
+      println("new:" + newLRproof.proof)
+
+      println("newRRproof")
+      println("old:" + rightProof.eProof.r.proof)
+      println("new:" + newRRproof.proof)
 
       val toReplace = toReplaceL ++ toReplaceR
 
@@ -212,7 +223,7 @@ case class SLExistenceProof(e: SLElement, proof: SLPath) extends SLProof {
 
   def rootHash[HF <: CommutativeHash[_]]()(implicit hashFunction: HF): Digest = {
     proof.hashes.foldLeft(hashFunction.hash(e.bytes)) { (x, y) =>
-      println(s"${Base58.encode(hashFunction(e.bytes)).take(8)} hash(${Base58.encode(x).take(12)}, ${Base58.encode(y).take(12)}})")
+      //      println(s"${Base58.encode(hashFunction(e.bytes)).take(8)} hash(${Base58.encode(x).take(12)}, ${Base58.encode(y).take(12)}})")
       hashFunction.hash(x, y)
     }
   }

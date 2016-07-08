@@ -90,7 +90,7 @@ class SkipList[HF <: CommutativeHash[_], ST <: StorageType](implicit storage: KV
 
     require(prevNodeOpt.isDefined, s"Non-infinite element should have right node, $node")
     val prevNode = prevNodeOpt.get
-    if (prevNode.el == e  || prevNode.right.exists(r => r.el == e)) {
+    if (prevNode.el == e) {
       prevNode
     } else {
       prevNode.down match {

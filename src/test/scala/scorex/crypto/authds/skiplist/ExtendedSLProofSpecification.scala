@@ -11,7 +11,8 @@ class ExtendedSLProofSpecification extends PropSpec with GeneratorDrivenProperty
   implicit val storage = new MvStoreBlobBlobStorage(None)
   implicit val hf: CommutativeHash[Blake2b256.type] = new CommutativeHash(Blake2b256)
   val sl = new SkipList()(storage, hf)
-  val elements = genEl(100)
+//  val elements = genEl(6, Some(11))
+  val elements = genEl(3, Some(12))
   val nonIncludedElements = genEl(11).diff(elements)
   sl.update(SkipListUpdate(toDelete = Seq(), toInsert = elements))
 
@@ -47,6 +48,8 @@ class ExtendedSLProofSpecification extends PropSpec with GeneratorDrivenProperty
     e.value should not equal newE.value
 
     sl.contains(newE) shouldBe true
+    println(Base58.encode(hf(elements.last.bytes)).take(8))
+    println(sl)
     sl.update(newE)
 
     val proofForUpdate = ProofToRecalculate(newE, oldProof)
@@ -57,6 +60,11 @@ class ExtendedSLProofSpecification extends PropSpec with GeneratorDrivenProperty
     println("=======")
     slProof.check(sl.rootHash) shouldBe true
     println("=======")
+    println("re: " + recalculatedProof.r.proof)
+    println("sl: " + sl.elementProof(newE).asInstanceOf[SLExistenceProof].proof)
+
+
+
     recalculatedProof.check(sl.rootHash) shouldBe true
 
   }

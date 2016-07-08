@@ -11,9 +11,9 @@ case class SLPath(levHashes: Seq[LevHash]) extends DataProof {
   lazy val hashes: Seq[CryptographicHash#Digest] = levHashes.map(_.h)
   lazy val levels: Seq[Int] = levHashes.map(_.l)
 
-  override def toString: String = s"${levHashes.map(lh => (Base58.encode(lh.h), lh.l))}"
+  override def toString: String = levHashes.mkString(", ")
 }
 
 case class LevHash(h: CryptographicHash#Digest, l: Int) {
-  
+  override def toString: String = s"${Base58.encode(h).take(12)}|$l"
 }
