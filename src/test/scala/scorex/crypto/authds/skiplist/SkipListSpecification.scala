@@ -87,8 +87,13 @@ with TestingCommons {
         sl.update(newSE)
         sl.rootHash shouldEqual rh
 
-        val sameKeyE = sl.update(newSE.copy(value = (2: Byte) +: newSE.value))
+        val sameKeyE = newSE.copy(value = (2: Byte) +: newSE.value)
+        sl.update(sameKeyE)
         sl.rootHash should not equal rh
+
+        val proof = sl.elementProof(sameKeyE).asInstanceOf[SLExistenceProof]
+        proof.e == sameKeyE
+        proof.check(sl.rootHash) shouldBe true
       }
     }
   }

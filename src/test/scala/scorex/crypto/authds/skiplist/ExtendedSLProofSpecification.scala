@@ -38,7 +38,7 @@ class ExtendedSLProofSpecification extends PropSpec with GeneratorDrivenProperty
 
   property("SLExtended: recalculate for SLExistenceProof") {
     val e = elements.last.asInstanceOf[NormalSLElement]
-    val proof = sl.elementProof(e).asInstanceOf[SLExistenceProof]
+    val oldProof = sl.elementProof(e).asInstanceOf[SLExistenceProof]
     val newE = e.copy(value = (1: Byte) +: e.value)
 
     e.key shouldEqual newE.key
@@ -47,24 +47,32 @@ class ExtendedSLProofSpecification extends PropSpec with GeneratorDrivenProperty
     println(Base58.encode(newE.bytes))
 
     sl.contains(newE) shouldBe true
-    val proofForUpdate = ProofToRecalculate(newE, proof)
-    val recalculated = ExtendedSLProof.recalculateProofs(Seq(proofForUpdate)).head
-
-    proofForUpdate.eProof.proof shouldEqual recalculated.eProof.proof
-    proofForUpdate.eProof.e shouldEqual e
-    recalculated.eProof.e shouldEqual newE
-
-    recalculated.eProof.rootHash() sameElements sl.rootHash shouldBe false
+    val proofForUpdate = ProofToRecalculate(newE, oldProof)
+    val recalculated = ExtendedSLProof.recalculateProofs(Seq(proofForUpdate)).head.eProof
     sl.update(newE)
-    println(Base58.encode(sl.elementProof(newE).asInstanceOf[SLExistenceProof].e.bytes))
-    println(Base58.encode(recalculated.eProof.e.bytes))
 
-    println(sl)
-    recalculated.eProof.rootHash()
-    println("=========")
-    sl.elementProof(newE).asInstanceOf[SLExistenceProof].rootHash()
-    println("=========")
+    recalculated.e shouldEqual newE
+    val slProof = sl.elementProof(newE).asInstanceOf[SLExistenceProof]
+    println("ol: " + oldProof.proof)
+    println("sl: " + slProof.proof)
+    println("re: " + recalculated.proof)
 
+    recalculated.e shouldEqual slProof.e
+    recalculated.proof shouldEqual slProof.proof
+
+    //    recalculated.rootHash() sameElements sl.rootHash shouldBe false
+    //    sl.update(newE)
+    //    println(Base58.encode(sl.elementProof(newE).asInstanceOf[SLExistenceProof].e.bytes))
+    //    println(Base58.encode(recalculated.e.bytes))
+    //
+    //    println(sl)
+    //    val rec = recalculated.rootHash()
+    //    println(Base58.encode(rec))
+    //    println("=========")
+    //    val rh = sl.elementProof(newE).asInstanceOf[SLExistenceProof].rootHash()
+    //    println(Base58.encode(rh))
+    //    println("=========")
+    //    recalculated.rootHash() sameElements sl.rootHash shouldBe true
 
 
   }

@@ -69,7 +69,7 @@ object ExtendedSLProof {
 
     @tailrec
     def loop(proofsRest: Seq[ProofToRecalculate], acc: Seq[ProofToRecalculate] = Seq()): Seq[ProofToRecalculate] = {
-      val p = proofsRest.head
+      val rightProof = proofsRest.head
       val leftProofs = proofsRest.tail
       //pairs of old and rew elements in self chain
       @tailrec
@@ -84,8 +84,8 @@ object ExtendedSLProof {
           acc
         }
       }
-      val elHashes = (LevHash(hf(p.eProof.e.bytes), 0), LevHash(hf(p.newEl.bytes), 0))
-      val toReplace = calcNewSelfElements(elHashes._1.h, elHashes._2.h, p.eProof.proof.levHashes, Seq(elHashes))
+      val elHashes = (LevHash(hf(rightProof.eProof.e.bytes), 0), LevHash(hf(rightProof.newEl.bytes), 0))
+      val toReplace = calcNewSelfElements(elHashes._1.h, elHashes._2.h, rightProof.eProof.proof.levHashes, Seq(elHashes))
 
       val recalculated: Seq[ProofToRecalculate] = leftProofs map { p =>
         val newHashes: Seq[LevHash] = p.eProof.proof.levHashes.map { lh =>
@@ -99,11 +99,11 @@ object ExtendedSLProof {
         p.copy(eProof = newProof)
       }
       if (proofsRest.tail.nonEmpty) {
-        loop(recalculated, p +: acc)
-      } else p +: acc
+        loop(recalculated, rightProof +: acc)
+      } else rightProof +: acc
     }
 
-    //right element proof won`t change
+    //right element proof will change cause it'll change left proof !!
     val newEProof = proofs.head.eProof.copy(e = proofs.head.newEl)
     loop(proofs.head.copy(eProof = newEProof) +: proofs.tail, Seq())
   }
