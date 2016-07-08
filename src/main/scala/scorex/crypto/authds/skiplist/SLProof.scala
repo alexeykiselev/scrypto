@@ -68,43 +68,44 @@ object ExtendedSLProof {
     val sorted = proofs.sortBy(_.newEl).reverse
 
     @tailrec
-    def loop(p: ProofToRecalculate, leftProofs: Seq[ProofToRecalculate],
-             acc: Seq[ProofToRecalculate] = Seq()): Seq[ProofToRecalculate] = {
-      if (leftProofs.nonEmpty) {
-        //pairs of old and rew elements in self chain
-        @tailrec
-        def calcNewSelfElements(v1: Digest, v2: Digest, restProofs: Seq[LevHash],
-                                acc: Seq[(LevHash, LevHash)]): Seq[(LevHash, LevHash)] = {
-          if (restProofs.nonEmpty) {
-            val currentProof = restProofs.head
-            val lev = currentProof.l
-            val pair: (LevHash, LevHash) = (LevHash(hf(v1, currentProof.h), lev), LevHash(hf(v2, currentProof.h), lev))
-            calcNewSelfElements(pair._1.h, pair._2.h, restProofs.tail, pair +: acc)
-          } else {
-            acc
-          }
+    def loop(proofsRest: Seq[ProofToRecalculate], acc: Seq[ProofToRecalculate] = Seq()): Seq[ProofToRecalculate] = {
+      val p = proofsRest.head
+      val leftProofs = proofsRest.tail
+      //pairs of old and rew elements in self chain
+      @tailrec
+      def calcNewSelfElements(v1: Digest, v2: Digest, restProofs: Seq[LevHash],
+                              acc: Seq[(LevHash, LevHash)]): Seq[(LevHash, LevHash)] = {
+        if (restProofs.nonEmpty) {
+          val currentProof = restProofs.head
+          val lev = currentProof.l
+          val pair: (LevHash, LevHash) = (LevHash(hf(v1, currentProof.h), lev), LevHash(hf(v2, currentProof.h), lev))
+          calcNewSelfElements(pair._1.h, pair._2.h, restProofs.tail, pair +: acc)
+        } else {
+          acc
         }
-        val elHashes = (LevHash(hf(p.eProof.e.bytes), 0), LevHash(hf(p.newEl.bytes), 0))
-        val toReplace = calcNewSelfElements(elHashes._1.h, elHashes._2.h, p.eProof.proof.levHashes, Seq(elHashes))
-
-        val recalculated: Seq[ProofToRecalculate] = leftProofs map { p =>
-          val newHashes: Seq[LevHash] = p.eProof.proof.levHashes.map { lh =>
-            val replace = toReplace.find(tr => lh.l == tr._1.l && (lh.h sameElements tr._1.h)).map(_._2).getOrElse(lh)
-            require(replace.l == lh.l)
-            require(replace.h sameElements lh.h)
-            replace
-          }
-          val newPath = SLPath(newHashes)
-          val newProof = p.eProof.copy(proof = newPath, e = p.newEl)
-          p.copy(eProof = newProof)
-        }
-        loop(recalculated.head, recalculated.tail, recalculated.head +: acc)
-      } else {
-        acc
       }
+      val elHashes = (LevHash(hf(p.eProof.e.bytes), 0), LevHash(hf(p.newEl.bytes), 0))
+      val toReplace = calcNewSelfElements(elHashes._1.h, elHashes._2.h, p.eProof.proof.levHashes, Seq(elHashes))
+
+      val recalculated: Seq[ProofToRecalculate] = leftProofs map { p =>
+        val newHashes: Seq[LevHash] = p.eProof.proof.levHashes.map { lh =>
+          val replace = toReplace.find(tr => lh.l == tr._1.l && (lh.h sameElements tr._1.h)).map(_._2).getOrElse(lh)
+          require(replace.l == lh.l)
+          require(replace.h sameElements lh.h)
+          replace
+        }
+        val newPath = SLPath(newHashes)
+        val newProof = p.eProof.copy(proof = newPath, e = p.newEl)
+        p.copy(eProof = newProof)
+      }
+      if (proofsRest.tail.nonEmpty) {
+        loop(recalculated, p +: acc)
+      } else p +: acc
     }
 
-    loop(proofs.head, proofs.tail, Seq(proofs.head))
+    //right element proof won`t change
+    val newEProof = proofs.head.eProof.copy(e = proofs.head.newEl)
+    loop(proofs.head.copy(eProof = newEProof) +: proofs.tail, Seq())
   }
 
 }
@@ -170,6 +171,7 @@ case class SLExistenceProof(e: SLElement, proof: SLPath) extends SLProof {
 
   def rootHash[HF <: CommutativeHash[_]]()(implicit hashFunction: HF): Digest = {
     proof.hashes.foldLeft(hashFunction.hash(e.bytes)) { (x, y) =>
+//      println(s"hash(${Base58.encode(x).take(12)}, ${Base58.encode(y).take(12)}})")
       hashFunction.hash(x, y)
     }
   }

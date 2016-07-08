@@ -17,7 +17,7 @@ trait SLGenerators {
     op: Boolean <- Arbitrary.arbitrary[Boolean]
   } yield if (op) Some(bytes) else None
 
-  val slelementGenerator: Gen[SLElement] = for {
+  val slelementGenerator: Gen[NormalSLElement] = for {
     key: Array[Byte] <- noneEmptyBytes
     value: Array[Byte] <- Arbitrary.arbitrary[Array[Byte]]
   } yield SLElement(key, value)

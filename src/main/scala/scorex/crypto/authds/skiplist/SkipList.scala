@@ -98,6 +98,7 @@ class SkipList[HF <: CommutativeHash[_], ST <: StorageType](implicit storage: KV
   def update(newE: SLElement, singleInsert: Boolean = true): Unit = {
     val n = findLeftTop(topNode, newE)
     val lev = n.level
+    delete(newE)
     insert(newE, singleInsert, Some(lev))
   }
 

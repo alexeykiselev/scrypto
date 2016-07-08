@@ -78,7 +78,7 @@ with TestingCommons {
   }
 
   property("SkipList should update element") {
-    forAll(slelementGenerator) { newSE: SLElement =>
+    forAll(slelementGenerator) { newSE: NormalSLElement =>
       whenever(!sl.contains(newSE)) {
         sl.insert(newSE) shouldBe true
         sl.contains(newSE) shouldBe true
@@ -86,6 +86,9 @@ with TestingCommons {
 
         sl.update(newSE)
         sl.rootHash shouldEqual rh
+
+        val sameKeyE = sl.update(newSE.copy(value = (2: Byte) +: newSE.value))
+        sl.rootHash should not equal rh
       }
     }
   }
