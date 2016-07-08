@@ -6,10 +6,14 @@ import scorex.crypto.encode._
 import scorex.crypto.hash.CryptographicHash
 
 
-case class SLPath(levHashes: Seq[(CryptographicHash#Digest, Int)]) extends DataProof {
+case class SLPath(levHashes: Seq[LevHash]) extends DataProof {
 
-  lazy val hashes: Seq[CryptographicHash#Digest] = levHashes.map(_._1)
-  lazy val levels: Seq[Int] = levHashes.map(_._2)
+  lazy val hashes: Seq[CryptographicHash#Digest] = levHashes.map(_.h)
+  lazy val levels: Seq[Int] = levHashes.map(_.l)
 
-  override def toString: String = s"${levHashes.map(lh => (Base58.encode(lh._1), lh._2))}"
+  override def toString: String = s"${levHashes.map(lh => (Base58.encode(lh.h), lh.l))}"
+}
+
+case class LevHash(h: CryptographicHash#Digest, l: Int) {
+  
 }

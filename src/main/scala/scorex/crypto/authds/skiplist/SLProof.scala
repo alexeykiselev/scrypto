@@ -6,7 +6,7 @@ import scorex.crypto.authds.AuthData
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.{CommutativeHash, CryptographicHash}
 
-import scala.collection.mutable
+import scala.annotation.tailrec
 import scala.util.Try
 
 sealed trait SLProof extends AuthData[SLPath] {
@@ -37,27 +37,79 @@ sealed trait ExtendedSLProof extends SLProof
 object ExtendedSLProof {
   type Digest = CryptographicHash#Digest
 
-  def recalculate[HF <: CommutativeHash[_]](proof: ExtendedSLProof, newEl: SLElement)
-                                           (implicit hf: HF): Digest = {
-    proof match {
-      case SLNonExistenceProof(e, left, right) =>
-        require(e == newEl)
-        val rightHash: Digest = left.proof.hashes.head
-        var toReplace: mutable.HashMap[String, Digest] = mutable.HashMap.empty
-        val newProofs = (hf(rightHash, hf(newEl.bytes)), 0) +: left.proof.levHashes.tail
+
+  //  def recalculate[HF <: CommutativeHash[_]](proof: ExtendedSLProof, newEl: SLElement, maxLev: Int)
+  //                                           (implicit hf: HF): Digest = {
+  //    proof match {
+  //      case SLNonExistenceProof(e, left, right) =>
+  //        require(e == newEl)
+  //        val rightHash: Digest = left.proof.hashes.head
+  //        val newProofs = (hf(rightHash, hf(newEl.bytes)), 0) +: left.proof.levHashes.tail
+  //
+  //        //Все что приходило справа в левый пруф на высоте <=, чем высота, на которую мы добавили элемент попадает в новый элемент
+  //        //При этом из левого пруфа они убираются, и вместо их все добавляется хеш на высоте нового элемента
+  //
+  //
+  ////        newProofs.foldLeft(hf.hash(left.e.bytes)) { (x, y) =>
+  ////          //x - calculated, y - from list
+  ////          val replaced = toReplace.getOrElse(Base58.encode(y._1), y._1)
+  ////          println(s"calc: ${Base58.encode(x)}, ${Base58.encode(replaced)}")
+  ////          hf.hash(x, y._1)
+  ////        }
+  //      case _ => ???
+  //    }
+  //
+  //  }
 
 
+  //начинаем справа налево и обновляем доказательства
+  def recalculateProofs[HF <: CommutativeHash[_]](proofs: Seq[ProofToRecalculate])
+                                                 (implicit hf: HF): Seq[ProofToRecalculate] = {
+    val sorted = proofs.sortBy(_.newEl).reverse
 
-        newProofs.foldLeft(hf.hash(left.e.bytes)) { (x, y) =>
-          //x - calculated, y - from list
-          val replaced = toReplace.getOrElse(Base58.encode(y._1), y._1)
-          println(s"calc: ${Base58.encode(x)}, ${Base58.encode(replaced)}")
-          hf.hash(x, replaced)
+    @tailrec
+    def loop(p: ProofToRecalculate, leftProofs: Seq[ProofToRecalculate],
+             acc: Seq[ProofToRecalculate] = Seq()): Seq[ProofToRecalculate] = {
+      if (leftProofs.nonEmpty) {
+        //pairs of old and rew elements in self chain
+        @tailrec
+        def calcNewSelfElements(v1: Digest, v2: Digest, restProofs: Seq[LevHash],
+                                acc: Seq[(LevHash, LevHash)]): Seq[(LevHash, LevHash)] = {
+          if (restProofs.nonEmpty) {
+            val currentProof = restProofs.head
+            val lev = currentProof.l
+            val pair: (LevHash, LevHash) = (LevHash(hf(v1, currentProof.h), lev), LevHash(hf(v2, currentProof.h), lev))
+            calcNewSelfElements(pair._1.h, pair._2.h, restProofs.tail, pair +: acc)
+          } else {
+            acc
+          }
         }
-      case _ => ???
+        val elHashes = (LevHash(hf(p.eProof.e.bytes), 0), LevHash(hf(p.newEl.bytes), 0))
+        val toReplace = calcNewSelfElements(elHashes._1.h, elHashes._2.h, p.eProof.proof.levHashes, Seq(elHashes))
+
+        val recalculated: Seq[ProofToRecalculate] = leftProofs map { p =>
+          val newHashes: Seq[LevHash] = p.eProof.proof.levHashes.map { lh =>
+            val replace = toReplace.find(tr => lh.l == tr._1.l && (lh.h sameElements tr._1.h)).map(_._2).getOrElse(lh)
+            require(replace.l == lh.l)
+            require(replace.h sameElements lh.h)
+            replace
+          }
+          val newPath = SLPath(newHashes)
+          val newProof = p.eProof.copy(proof = newPath)
+          p.copy(eProof = newProof)
+        }
+        loop(recalculated.head, recalculated.tail, recalculated.head +: acc)
+      } else {
+        acc
+      }
     }
 
+    loop(proofs.head, proofs.tail)
   }
+
+
+  case class ProofToRecalculate(newEl: SLElement, eProof: SLExistenceProof)
+
 }
 
 /**
@@ -114,8 +166,6 @@ case class SLExistenceProof(e: SLElement, proof: SLPath) extends SLProof {
    */
   def check[HF <: CommutativeHash[_]](rootHash: Digest)(implicit hashFunction: HF): Boolean = {
     proof.hashes.foldLeft(hashFunction.hash(e.bytes)) { (x, y) =>
-      println(s"check: ${Base58.encode(x)}, ${Base58.encode(y)}")
-
       hashFunction.hash(x, y)
     }.sameElements(rootHash)
   }
@@ -154,7 +204,7 @@ object SLProof {
       bytes.slice(merklePathStart + i * merklePathSize, merklePathStart + (i + 1) * merklePathSize)
     }
     //TODO parse levels
-    SLExistenceProof(e, SLPath(merklePath.map(h => (h, -1))))
+    SLExistenceProof(e, SLPath(merklePath.map(h => LevHash(h, -1))))
   }
 }
 
@@ -172,7 +222,7 @@ object SLExistenceProof {
               case m =>
                 throw new RuntimeException("MerklePath MUST be array of strings" + m + " given")
             }
-          }.map(h => (h.get, -1))
+          }.map(h => LevHash(h.get, -1))
           //TODO parse levels
           case m =>
             throw new RuntimeException("MerklePath MUST be a list " + m + " given")
