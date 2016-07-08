@@ -43,41 +43,15 @@ class ExtendedSLProofSpecification extends PropSpec with GeneratorDrivenProperty
     oldProof.check(sl.rootHash) shouldBe true
     val newE = e.copy(value = (1: Byte) +: e.value)
 
+    e.key shouldEqual newE.key
+    e.value should not equal newE.value
 
-//
-//    e.key shouldEqual newE.key
-//    e.value should not equal newE.value
-//    println(Base58.encode(e.bytes))
-//    println(Base58.encode(newE.bytes))
-//
-//    sl.contains(newE) shouldBe true
-//    val proofForUpdate = ProofToRecalculate(newE, oldProof)
-//    val recalculated = ExtendedSLProof.recalculateProofs(Seq(proofForUpdate)).head.eProof
-//    sl.update(newE)
-//
-//    recalculated.e shouldEqual newE
-//    val slProof = sl.elementProof(newE).asInstanceOf[SLExistenceProof]
-//    println("ol: " + oldProof.proof)
-//    println("sl: " + slProof.proof)
-//    println("re: " + recalculated.proof)
-//
-//    recalculated.e shouldEqual slProof.e
-//    recalculated.proof shouldEqual slProof.proof
+    sl.contains(newE) shouldBe true
+    sl.update(newE)
 
-    //    recalculated.rootHash() sameElements sl.rootHash shouldBe false
-    //    sl.update(newE)
-    //    println(Base58.encode(sl.elementProof(newE).asInstanceOf[SLExistenceProof].e.bytes))
-    //    println(Base58.encode(recalculated.e.bytes))
-    //
-    //    println(sl)
-    //    val rec = recalculated.rootHash()
-    //    println(Base58.encode(rec))
-    //    println("=========")
-    //    val rh = sl.elementProof(newE).asInstanceOf[SLExistenceProof].rootHash()
-    //    println(Base58.encode(rh))
-    //    println("=========")
-    //    recalculated.rootHash() sameElements sl.rootHash shouldBe true
-
+    val proofForUpdate = ProofToRecalculate(newE, oldProof)
+    val recalculatedProof = ExtendedSLProof.recalculateProofs(Seq(proofForUpdate)).head.eProof
+    recalculatedProof.check(sl.rootHash) shouldBe true
 
   }
 

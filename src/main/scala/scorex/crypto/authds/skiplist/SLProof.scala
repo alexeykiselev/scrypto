@@ -36,6 +36,7 @@ sealed trait ExtendedSLProof extends SLProof
 
 case class ExtendedSLExistenceProof(l: SLExistenceProof, r: SLExistenceProof) extends ExtendedSLProof {
   override def check[HF <: CommutativeHash[_]](rootHash: Digest)(implicit hashFunction: HF): Boolean = {
+    println(s"${l.leftNeighborTo(r)} && ${l.check(rootHash)} && ${r.check(rootHash)}")
     l.leftNeighborTo(r) && l.check(rootHash) && r.check(rootHash)
   }
 
@@ -208,7 +209,7 @@ case class SLExistenceProof(e: SLElement, proof: SLPath) extends SLProof {
 
   def rootHash[HF <: CommutativeHash[_]]()(implicit hashFunction: HF): Digest = {
     proof.hashes.foldLeft(hashFunction.hash(e.bytes)) { (x, y) =>
-      //      println(s"hash(${Base58.encode(x).take(12)}, ${Base58.encode(y).take(12)}})")
+      println(s"hash(${Base58.encode(x).take(12)}, ${Base58.encode(y).take(12)}})")
       hashFunction.hash(x, y)
     }
   }
