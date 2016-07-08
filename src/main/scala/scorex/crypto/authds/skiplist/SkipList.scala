@@ -48,7 +48,8 @@ class SkipList[HF <: CommutativeHash[_], ST <: StorageType](implicit storage: KV
       SLNonExistenceProof(e, leftProof, rightProof)
     }
   }
-//  }.ensuring(_.check(rootHash))
+
+  //  }.ensuring(_.check(rootHash))
 
   // find bottom node with current element
   def find(e: SLElement): Option[SLNode] = {
@@ -57,15 +58,15 @@ class SkipList[HF <: CommutativeHash[_], ST <: StorageType](implicit storage: KV
   }
 
   /**
-    * find first BOTTOM node which element is bigger then current element
-    */
+   * find first BOTTOM node which element is bigger then current element
+   */
   private def findLeft(node: SLNode, e: SLElement): SLNode = {
     findLeftTop(node, e).downUntil(_.down.isEmpty).get
   }
 
   /**
-    * find first TOP node which element is bigger then current element
-    */
+   * find first TOP node which element is bigger then current element
+   */
   @tailrec
   private def findLeftTop(node: SLNode, e: SLElement): SLNode = {
     val prevNodeOpt = node.rightUntil(n => n.right.exists(rn => rn.el > e))
@@ -158,24 +159,24 @@ class SkipList[HF <: CommutativeHash[_], ST <: StorageType](implicit storage: KV
     }
   }
 
-  private def hashTrack(trackElement: SLElement, n: SLNode = topNode): Seq[(CryptographicHash#Digest, Int)] = {
-    def hashTrackLoop(n: SLNode = topNode): Seq[(CryptographicHash#Digest, Int)] = {
+  private def hashTrack(trackElement: SLElement, n: SLNode = topNode): Seq[LevHash] = {
+    def hashTrackLoop(n: SLNode = topNode): Seq[LevHash] = {
       n.right match {
         case Some(rn) =>
           n.down match {
             case Some(dn) =>
               if (rn.isTower) hashTrackLoop(dn)
-              else if (rn.el > trackElement) (rn.hash, n.level) +: hashTrackLoop(dn)
-              else (dn.hash, n.level) +: hashTrackLoop(rn)
+              else if (rn.el > trackElement) LevHash(rn.hash, n.level) +: hashTrackLoop(dn)
+              else LevHash(dn.hash, n.level) +: hashTrackLoop(rn)
             case None =>
               if (rn.el > trackElement) {
-                if (rn.isTower) Seq((hf.hash(rn.el.bytes), n.level))
-                else Seq((rn.hash, n.level))
+                if (rn.isTower) Seq(LevHash(hf.hash(rn.el.bytes), n.level))
+                else Seq(LevHash(rn.hash, n.level))
               } else {
-                (hf.hash(n.el.bytes), n.level) +: hashTrackLoop(rn)
+                LevHash(hf.hash(n.el.bytes), n.level) +: hashTrackLoop(rn)
               }
           }
-        case None => Seq((SLNode.emptyHash, 0))
+        case None => Seq(LevHash(SLNode.emptyHash, 0))
       }
     }
     hashTrackLoop().reverse
@@ -219,8 +220,8 @@ class SkipList[HF <: CommutativeHash[_], ST <: StorageType](implicit storage: KV
   }
 
   /**
-    * All nodes in a tower
-    */
+   * All nodes in a tower
+   */
   @tailrec
   private def tower(n: SLNode = topNode, acc: Seq[SLNode] = Seq(topNode)): Seq[SLNode] = n.down match {
     case Some(downNode) => tower(downNode, downNode +: acc)

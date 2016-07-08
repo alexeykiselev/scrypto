@@ -13,21 +13,21 @@ class ExtendedSLProofSpecification extends PropSpec with GeneratorDrivenProperty
 
   property("SLExtended proof empty check") {
     forAll(slelementGenerator) { newSE: SLElement =>
-      val sl2 = new SkipList()(storage, hf)
-      sl2.contains(newSE) shouldBe false
-
-      val proof = sl2.elementProof(newSE).asInstanceOf[SLNonExistenceProof]
-      proof.isEmpty shouldBe true
-
-      val newRootHash = ExtendedSLProof.recalculate(proof, newSE, sl2.topNode.level)
-      sl2.insert(newSE)
-      val newProof = sl2.elementProof(newSE)
-      newProof.check(sl2.rootHash)
-
-      Base58.encode(sl2.rootHash) shouldBe Base58.encode(newRootHash)
-      sl2.rootHash shouldEqual newRootHash
-
-      sl2.delete(newSE)
+//      val sl2 = new SkipList()(storage, hf)
+//      sl2.contains(newSE) shouldBe false
+//
+//      val proof = sl2.elementProof(newSE).asInstanceOf[SLNonExistenceProof]
+//      proof.isEmpty shouldBe true
+//
+//      val newRootHash = ExtendedSLProof.recalculate(proof, newSE, sl2.topNode.level)
+//      sl2.insert(newSE)
+//      val newProof = sl2.elementProof(newSE)
+//      newProof.check(sl2.rootHash)
+//
+//      Base58.encode(sl2.rootHash) shouldBe Base58.encode(newRootHash)
+//      sl2.rootHash shouldEqual newRootHash
+//
+//      sl2.delete(newSE)
     }
   }
 
