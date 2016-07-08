@@ -133,10 +133,7 @@ with ExtendedSLProof {
   override def check[HF <: CommutativeHash[_]](rootHash: Digest)(implicit hf: HF): Boolean = {
     val linked: Boolean = right match {
       case None => left.proof.hashes.head sameElements hf(MaxSLElement.bytes)
-      case Some(rp) =>
-        val tower = left.proof.hashes.head sameElements hf(rp.e.bytes)
-        val nonTower = left.proof.hashes.head sameElements hf.hash(hf(rp.e.bytes), rp.proof.hashes.head)
-        tower || nonTower
+      case Some(rp) => left.leftNeighborTo(rp)
     }
     val rightCheck = right.map(rp => e < rp.e && rp.check(rootHash)).getOrElse(true)
 
@@ -149,6 +146,12 @@ with ExtendedSLProof {
  * @param proof - skiplist path, complementary to data block
  */
 case class SLExistenceProof(e: SLElement, proof: SLPath) extends SLProof {
+
+  def leftNeighborTo[HF <: CommutativeHash[_]](that: SLExistenceProof)(implicit hf: HF): Boolean = {
+    val tower = proof.hashes.head sameElements hf(that.e.bytes)
+    val nonTower = proof.hashes.head sameElements hf(hf(that.e.bytes), that.proof.hashes.head)
+    tower || nonTower
+  }
 
   override def isEmpty: Boolean = false
 
@@ -171,7 +174,7 @@ case class SLExistenceProof(e: SLElement, proof: SLPath) extends SLProof {
 
   def rootHash[HF <: CommutativeHash[_]]()(implicit hashFunction: HF): Digest = {
     proof.hashes.foldLeft(hashFunction.hash(e.bytes)) { (x, y) =>
-//      println(s"hash(${Base58.encode(x).take(12)}, ${Base58.encode(y).take(12)}})")
+      //      println(s"hash(${Base58.encode(x).take(12)}, ${Base58.encode(y).take(12)}})")
       hashFunction.hash(x, y)
     }
   }
