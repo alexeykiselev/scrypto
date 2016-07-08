@@ -42,7 +42,7 @@ class ExtendedSLProofSpecification extends PropSpec with GeneratorDrivenProperty
     val newE = e.copy(value = (1: Byte) +: e.value)
 
     e.key shouldEqual newE.key
-    sl.contains(newE) shouldBe false
+    sl.contains(newE) shouldBe true
     val proofForUpdate = ProofToRecalculate(newE, proof)
     val recalculated = ExtendedSLProof.recalculateProofs(Seq(proofForUpdate)).head
 

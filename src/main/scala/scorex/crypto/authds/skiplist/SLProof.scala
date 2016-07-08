@@ -95,7 +95,7 @@ object ExtendedSLProof {
             replace
           }
           val newPath = SLPath(newHashes)
-          val newProof = p.eProof.copy(proof = newPath)
+          val newProof = p.eProof.copy(proof = newPath, e = p.newEl)
           p.copy(eProof = newProof)
         }
         loop(recalculated.head, recalculated.tail, recalculated.head +: acc)
@@ -104,7 +104,7 @@ object ExtendedSLProof {
       }
     }
 
-    loop(proofs.head, proofs.tail)
+    loop(proofs.head, proofs.tail, Seq(proofs.head))
   }
 
 }
