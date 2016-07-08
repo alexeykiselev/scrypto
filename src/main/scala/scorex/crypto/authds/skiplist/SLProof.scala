@@ -97,7 +97,6 @@ object ExtendedSLProof {
         val newHashes: Seq[LevHash] = p.proof.levHashes.map { lh =>
           val replace = toReplace.find(tr => lh.l == tr._1.l && (lh.h sameElements tr._1.h)).map(_._2).getOrElse(lh)
           require(replace.l == lh.l)
-          require(replace.h sameElements lh.h)
           replace
         }
         val newPath = SLPath(newHashes)
@@ -112,14 +111,18 @@ object ExtendedSLProof {
       val toReplaceR = calcNewSelfElements(elHashesR._1.h, elHashesR._2.h, rightProof.eProof.r.proof.levHashes, Seq(elHashesR))
 
       val headReplace = if (rightProof.eProof.l.proof.hashes.head sameElements hf(rightProof.eProof.r.e.bytes)) {
-        hf(rightProof.eProof.r.e.bytes)
+        hf(rightProof.newEl.bytes)
       } else {
-        hf(hf(rightProof.eProof.r.e.bytes), rightProof.eProof.r.proof.hashes.head)
+        hf(hf(rightProof.newEl .bytes), rightProof.eProof.r.proof.hashes.head)
       }
+      val newRRproof = rightProof.eProof.r.copy(e = rightProof.newEl)
 
       val elHashesL = (LevHash(rightProof.eProof.l.proof.hashes.head, 0), LevHash(headReplace, 0))
       val toReplaceL = calcNewSelfElements(hf(rightProof.eProof.l.e.bytes, rightProof.eProof.l.proof.hashes.head),
         hf(rightProof.eProof.l.e.bytes, headReplace), rightProof.eProof.l.proof.levHashes.tail, Seq(elHashesL))
+
+      val newLRproof = recalcOne(rightProof.eProof.l, elHashesL +: toReplaceR)
+      val newRightProof = rightProof.copy(eProof = ExtendedSLExistenceProof(newLRproof, newRRproof))
 
       val toReplace = toReplaceL ++ toReplaceR
 
@@ -130,8 +133,8 @@ object ExtendedSLProof {
         p.copy(eProof = newExtended)
       }
       if (proofsRest.tail.nonEmpty) {
-        loop(recalculated, rightProof +: acc)
-      } else rightProof +: acc
+        loop(recalculated, newRightProof +: acc)
+      } else newRightProof +: acc
     }
 
     //right element proof will change cause it'll change left proof !!
@@ -209,7 +212,7 @@ case class SLExistenceProof(e: SLElement, proof: SLPath) extends SLProof {
 
   def rootHash[HF <: CommutativeHash[_]]()(implicit hashFunction: HF): Digest = {
     proof.hashes.foldLeft(hashFunction.hash(e.bytes)) { (x, y) =>
-      println(s"hash(${Base58.encode(x).take(12)}, ${Base58.encode(y).take(12)}})")
+      println(s"${Base58.encode(hashFunction(e.bytes)).take(8)} hash(${Base58.encode(x).take(12)}, ${Base58.encode(y).take(12)}})")
       hashFunction.hash(x, y)
     }
   }
