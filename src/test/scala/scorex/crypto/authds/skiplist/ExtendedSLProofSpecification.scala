@@ -37,9 +37,13 @@ class ExtendedSLProofSpecification extends PropSpec with GeneratorDrivenProperty
   }
 
   property("SLExtended: recalculate for SLExistenceProof") {
-//    val e = elements.last.asInstanceOf[NormalSLElement]
-//    val oldProof = sl.elementProof(e).asInstanceOf[SLExistenceProof]
-//    val newE = e.copy(value = (1: Byte) +: e.value)
+    val e = elements.last.asInstanceOf[NormalSLElement]
+    sl.contains(e) shouldBe true
+    val oldProof = sl.extendedElementProof(e).asInstanceOf[ExtendedSLExistenceProof]
+    oldProof.check(sl.rootHash) shouldBe true
+    val newE = e.copy(value = (1: Byte) +: e.value)
+
+
 //
 //    e.key shouldEqual newE.key
 //    e.value should not equal newE.value

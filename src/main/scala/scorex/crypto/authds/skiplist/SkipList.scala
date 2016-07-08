@@ -33,6 +33,22 @@ class SkipList[HF <: CommutativeHash[_], ST <: StorageType](implicit storage: KV
 
   def contains(e: SLElement): Boolean = find(e).isDefined
 
+  def extendedElementProof(e: SLElement): ExtendedSLProof = {
+    val leftNode = findLeft(topNode, e, includeEquals = false)
+    val leftProof = SLExistenceProof(leftNode.el, SLPath(hashTrack(leftNode.el)))
+    val rightNode = leftNode.right.get
+    if (rightNode.el.key sameElements e.key) {
+      ExtendedSLExistenceProof(leftProof, SLExistenceProof(rightNode.el, SLPath(hashTrack(rightNode.el))))
+    } else {
+      val rightProof =
+        if (rightNode.el < MaxSLElement) Some(SLExistenceProof(rightNode.el, SLPath(hashTrack(rightNode.el))))
+        else None
+
+      SLNonExistenceProof(e, leftProof, rightProof)
+    }
+  }
+
+
   def elementProof(e: SLElement): SLProof = {
     val leftNode = findLeft(topNode, e)
     val leftProof = SLExistenceProof(leftNode.el, SLPath(hashTrack(leftNode.el)))
@@ -60,23 +76,25 @@ class SkipList[HF <: CommutativeHash[_], ST <: StorageType](implicit storage: KV
   /**
    * find first BOTTOM node which element is bigger then current element
    */
-  private def findLeft(node: SLNode, e: SLElement): SLNode = {
-    findLeftTop(node, e).downUntil(_.down.isEmpty).get
+  private def findLeft(node: SLNode, e: SLElement, includeEquals: Boolean = true): SLNode = {
+    findLeftTop(node, e, includeEquals).downUntil(_.down.isEmpty).get
   }
 
   /**
    * find first TOP node which element is lower or equal to current element
    */
   @tailrec
-  private def findLeftTop(node: SLNode, e: SLElement): SLNode = {
-    val prevNodeOpt = node.rightUntil(n => n.right.exists(rn => rn.el > e))
+  private def findLeftTop(node: SLNode, e: SLElement, includeEquals: Boolean = true): SLNode = {
+    val prevNodeOpt = if (includeEquals) node.rightUntil(n => n.right.exists(rn => rn.el > e))
+    else node.rightUntil(n => n.right.exists(rn => rn.el >= e))
+
     require(prevNodeOpt.isDefined, s"Non-infinite element should have right node, $node")
     val prevNode = prevNodeOpt.get
-    if (prevNode.el == e) {
+    if (prevNode.el == e  || prevNode.right.exists(r => r.el == e)) {
       prevNode
     } else {
       prevNode.down match {
-        case Some(dn: SLNode) => findLeftTop(dn, e)
+        case Some(dn: SLNode) => findLeftTop(dn, e, includeEquals)
         case _ => prevNode
       }
     }
