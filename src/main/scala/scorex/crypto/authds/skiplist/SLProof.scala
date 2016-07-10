@@ -104,6 +104,7 @@ object ExtendedSLProof {
       val rightProof = proofsRest.head
       val leftProofs = proofsRest.tail
 
+      println(" ======================================= ")
       //for right proof from rightProof
       val elHashesR = (LevHash(hf(rightProof.eProof.r.e.bytes), 0), LevHash(hf(rightProof.newEl.bytes), 0))
       val toReplaceR = calcNewSelfElements(elHashesR._1.h, elHashesR._2.h, rightProof.eProof.r.proof.levHashes, Seq(elHashesR))
@@ -128,10 +129,11 @@ object ExtendedSLProof {
       println("toReplaceL: " + toReplaceL)
       val newRRproof = recalcOne(rightProof.eProof.r.copy(e = rightProof.newEl), toReplaceL)
       val newRightProof = rightProof.copy(eProof = ExtendedSLExistenceProof(newLRproof, newRRproof))
+      println("Left:" + Base58.encode(hf(rightProof.eProof.l.e.bytes)).take(12))
       println("old:" + rightProof.eProof.l.proof)
       println("new:" + newLRproof.proof)
 
-      println("newRRproof")
+      println("Right:"+ Base58.encode(hf(rightProof.eProof.r.e.bytes)).take(12))
       println("old:" + rightProof.eProof.r.proof)
       println("new:" + newRRproof.proof)
 
@@ -149,7 +151,7 @@ object ExtendedSLProof {
     }
 
     //right element proof will change cause it'll change left proof !!
-    val recalculated = loop(proofs, Seq())
+    val recalculated = loop(sorted, Seq())
     recalculated.head.eProof.l.rootHash()
   }
 
