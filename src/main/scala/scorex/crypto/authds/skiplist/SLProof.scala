@@ -74,8 +74,8 @@ object ExtendedSLProof {
 
 
   //начинаем справа налево и обновляем доказательства
-  def recalculateProofs[HF <: CommutativeHash[_]](proofs: Seq[ProofToRecalculate])
-                                                 (implicit hf: HF): Seq[ProofToRecalculate] = {
+  def recalculate[HF <: CommutativeHash[_]](proofs: Seq[ProofToRecalculate])
+                                           (implicit hf: HF): Digest = {
     val sorted = proofs.sortBy(_.newEl).reverse
 
     @tailrec
@@ -149,7 +149,8 @@ object ExtendedSLProof {
     }
 
     //right element proof will change cause it'll change left proof !!
-    loop(proofs, Seq())
+    val recalculated = loop(proofs, Seq())
+    recalculated.head.eProof.l.rootHash()
   }
 
 }
