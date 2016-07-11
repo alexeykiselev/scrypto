@@ -72,12 +72,14 @@ object ExtendedSLProof {
   //
   //  }
 
-
-  //начинаем справа налево и обновляем доказательства
   def recalculate[HF <: CommutativeHash[_]](proofs: Seq[ProofToRecalculate])
                                            (implicit hf: HF): Digest = {
-    val sorted = proofs.sortBy(_.newEl).reverse
+    recalculateProofs(proofs).head.eProof.l.rootHash()
+  }
 
+  //начинаем справа налево и обновляем доказательства
+  def recalculateProofs[HF <: CommutativeHash[_]](proofs: Seq[ProofToRecalculate])
+                                           (implicit hf: HF): Seq[ProofToRecalculate] = {
     @tailrec
     def loop(proofsRest: Seq[ProofToRecalculate], acc: Seq[ProofToRecalculate] = Seq()): Seq[ProofToRecalculate] = {
       //pairs of old and rew elements in self chain
@@ -120,11 +122,11 @@ object ExtendedSLProof {
       val elHashesL = (LevHash(newLRproof.proof.hashes.head, 0), LevHash(headReplace, 0))
       //replcase self element
       // !!!!!!!!! incorrect
-      val oldLeftHash = hf(rightProof.eProof.l.e.bytes, rightProof.eProof.l.proof.hashes.head)
-      val newLeftHash = hf(rightProof.eProof.l.e.bytes, headReplace)
+      val oldLeftHash = hf(hf(rightProof.eProof.l.e.bytes), rightProof.eProof.l.proof.hashes.head)
+      val newLeftHash = hf(hf(rightProof.eProof.l.e.bytes), headReplace)
 
-      val toReplaceL = (LevHash(oldLeftHash, -1), LevHash(newLeftHash, -1)) +: calcNewSelfElements(hf(newLRproof.e.bytes, rightProof.eProof.l.proof.hashes.head),
-        hf(newLRproof.e.bytes, headReplace), newLRproof.proof.levHashes.tail, Seq(elHashesL))
+      val toReplaceL = (LevHash(oldLeftHash, -1), LevHash(newLeftHash, -1)) +: calcNewSelfElements(oldLeftHash,
+        newLeftHash, newLRproof.proof.levHashes.tail, Seq(elHashesL))
 
       println("toReplaceL: " + toReplaceL)
       val newRRproof = recalcOne(rightProof.eProof.r.copy(e = rightProof.newEl), toReplaceL)
@@ -151,8 +153,7 @@ object ExtendedSLProof {
     }
 
     //right element proof will change cause it'll change left proof !!
-    val recalculated = loop(sorted, Seq())
-    recalculated.head.eProof.l.rootHash()
+    loop(proofs.sortBy(_.newEl).reverse, Seq())
   }
 
 }
