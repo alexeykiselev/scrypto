@@ -15,9 +15,9 @@ class ExtendedSLProofSpecification extends PropSpec with GeneratorDrivenProperty
 
   property("Update elements") {
     println(sl)
-//    val forUpdate = elements.take(3)
+    val forUpdate = elements.take(3)
 //    val forUpdate = elements.head +: Seq(elements.last)
-    val forUpdate =  Seq(elements.last)
+//    val forUpdate =  Seq(elements.last)
 
     val proofsForUpdate = forUpdate map { e =>
       val proof = sl.extendedElementProof(e).asInstanceOf[ExtendedSLExistenceProof]

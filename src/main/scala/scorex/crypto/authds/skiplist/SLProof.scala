@@ -79,7 +79,7 @@ object ExtendedSLProof {
 
   //начинаем справа налево и обновляем доказательства
   def recalculateProofs[HF <: CommutativeHash[_]](proofs: Seq[ProofToRecalculate])
-                                           (implicit hf: HF): Seq[ProofToRecalculate] = {
+                                                 (implicit hf: HF): Seq[ProofToRecalculate] = {
     @tailrec
     def loop(proofsRest: Seq[ProofToRecalculate], acc: Seq[ProofToRecalculate] = Seq()): Seq[ProofToRecalculate] = {
       //pairs of old and rew elements in self chain
@@ -96,8 +96,16 @@ object ExtendedSLProof {
         }
       }
       def recalcOne(p: SLExistenceProof, toReplace: Seq[(LevHash, LevHash)]): SLExistenceProof = {
+        val filtered = toReplace.filter(tr => !(tr._1.h sameElements tr._2.h))
         val newHashes: Seq[LevHash] = p.proof.levHashes.map { lh =>
-          toReplace.find(tr => lh.h sameElements tr._1.h).map(_._2).getOrElse(lh)
+          def r(h: LevHash): LevHash = filtered.find(tr => h.h sameElements tr._1.h).map(_._2) match {
+            case Some(repl) => r(repl)
+            case None => h
+
+          }
+          r(lh)
+
+          //          toReplace.find(tr => lh.h sameElements tr._1.h).map(_._2).getOrElse(lh)
         }
         val newPath = SLPath(newHashes)
         p.copy(proof = newPath)
@@ -110,7 +118,7 @@ object ExtendedSLProof {
       //for right proof from rightProof
       val elHashesR = (LevHash(hf(rightProof.eProof.r.e.bytes), 0), LevHash(hf(rightProof.newEl.bytes), 0))
       val toReplaceR = calcNewSelfElements(elHashesR._1.h, elHashesR._2.h, rightProof.eProof.r.proof.levHashes, Seq(elHashesR))
-      println("toReplaceR: " +toReplaceR)
+      println("toReplaceR: " + toReplaceR)
 
       val headReplace = if (rightProof.eProof.l.proof.hashes.head sameElements hf(rightProof.eProof.r.e.bytes)) {
         hf(rightProof.newEl.bytes)
@@ -126,7 +134,7 @@ object ExtendedSLProof {
       val newLeftHash = hf(hf(rightProof.eProof.l.e.bytes), headReplace)
 
       val toReplaceL = (LevHash(oldLeftHash, -1), LevHash(newLeftHash, -1)) +: calcNewSelfElements(oldLeftHash,
-        newLeftHash, newLRproof.proof.levHashes.tail, Seq(elHashesL))
+        newLeftHash, newLRproof.proof.levHashes.tail, Seq(elHashesL)).filter(tr => !(tr._1.h sameElements tr._2.h))
 
       println("toReplaceL: " + toReplaceL)
       val newRRproof = recalcOne(rightProof.eProof.r.copy(e = rightProof.newEl), toReplaceL)
@@ -135,7 +143,7 @@ object ExtendedSLProof {
       println("old:" + rightProof.eProof.l.proof)
       println("new:" + newLRproof.proof)
 
-      println("Right:"+ Base58.encode(hf(rightProof.eProof.r.e.bytes)).take(12))
+      println("Right:" + Base58.encode(hf(rightProof.eProof.r.e.bytes)).take(12))
       println("old:" + rightProof.eProof.r.proof)
       println("new:" + newRRproof.proof)
 
